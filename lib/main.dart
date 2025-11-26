@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Physics Splash Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const Step3Screen(),
+      home: const Step4Screen(),
     );
   }
 }
@@ -233,6 +233,127 @@ class _Step3ScreenState extends State<Step3Screen>
                   const SizedBox(height: 8),
                   Text(
                     'パーティクル数: ${_engine.particleCount}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Step4Screen extends StatefulWidget {
+  const Step4Screen({Key? key}) : super(key: key);
+
+  @override
+  State<Step4Screen> createState() => _Step4ScreenState();
+}
+
+class _Step4ScreenState extends State<Step4Screen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late PhysicsEngine _engine;
+  DateTime _lastTime = DateTime.now();
+  final Random _random = Random();
+  bool _initialized = false;
+  double _windStrength = 0.0; // 風の強さ
+
+  @override
+  void initState() {
+    super.initState();
+
+    _engine = PhysicsEngine(gravity: Vector2D(0, 100));
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(days: 1),
+    )..addListener(_onFrame);
+
+    _controller.repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_initialized) {
+      for (int i = 0; i < 50; i++) {
+        _addRandomSnowParticle();
+      }
+      _initialized = true;
+    }
+  }
+
+  void _addRandomSnowParticle() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final particle = SnowParticle(
+      position: Vector2D(
+        _random.nextDouble() * screenWidth,
+        _random.nextDouble() * -200,
+      ),
+      size: 6 + _random.nextDouble() * 6,
+      rotationSpeed: -1.0 + _random.nextDouble() * 2.0, // 回転速度を追加
+    );
+    _engine.addParticle(particle);
+  }
+
+  void _onFrame() {
+    final now = DateTime.now();
+    final dt = now.difference(_lastTime).inMicroseconds / 1000000.0;
+    _lastTime = now;
+
+    setState(() {
+      // 風の強さを時間で変化させる
+      _windStrength = sin(now.millisecondsSinceEpoch / 2000) * 30;
+      final wind = Vector2D(_windStrength, 0);
+
+      // 全パーティクルに風を適用
+      for (var particle in _engine.particles) {
+        particle.applyForce(wind);
+      }
+
+      final screenSize = MediaQuery.of(context).size;
+      _engine.update(dt, screenSize);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A237E),
+      body: Stack(
+        children: [
+          CustomPaint(painter: EnginePainter(_engine), size: Size.infinite),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Step 4: 回転・横揺れを追加',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'パーティクル数: ${_engine.particleCount}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  Text(
+                    '風: ${_windStrength.toStringAsFixed(1)}',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
