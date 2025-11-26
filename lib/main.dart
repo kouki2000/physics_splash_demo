@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Physics Splash Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const Step4Screen(),
+      home: const Step5Screen(),
     );
   }
 }
@@ -355,6 +355,185 @@ class _Step4ScreenState extends State<Step4Screen>
                   Text(
                     '風: ${_windStrength.toStringAsFixed(1)}',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Step5Screen extends StatefulWidget {
+  const Step5Screen({Key? key}) : super(key: key);
+
+  @override
+  State<Step5Screen> createState() => _Step5ScreenState();
+}
+
+class _Step5ScreenState extends State<Step5Screen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late PhysicsEngine _engine;
+  DateTime _lastTime = DateTime.now();
+  final Random _random = Random();
+  bool _initialized = false;
+  double _windStrength = 0.0;
+  double _opacity = 0.0; // フェードイン用
+
+  @override
+  void initState() {
+    super.initState();
+
+    _engine = PhysicsEngine(gravity: Vector2D(0, 100));
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(days: 1),
+    )..addListener(_onFrame);
+
+    _controller.repeat();
+
+    // フェードイン開始
+    Future.delayed(const Duration(milliseconds: 500), () {
+      setState(() {
+        _opacity = 1.0;
+      });
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_initialized) {
+      for (int i = 0; i < 50; i++) {
+        _addRandomSnowParticle();
+      }
+      _initialized = true;
+    }
+  }
+
+  void _addRandomSnowParticle() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final particle = SnowParticle(
+      position: Vector2D(
+        _random.nextDouble() * screenWidth,
+        _random.nextDouble() * -200,
+      ),
+      size: 6 + _random.nextDouble() * 6,
+      rotationSpeed: -1.0 + _random.nextDouble() * 2.0,
+    );
+    _engine.addParticle(particle);
+  }
+
+  void _onFrame() {
+    final now = DateTime.now();
+    final dt = now.difference(_lastTime).inMicroseconds / 1000000.0;
+    _lastTime = now;
+
+    setState(() {
+      _windStrength = sin(now.millisecondsSinceEpoch / 2000) * 30;
+      final wind = Vector2D(_windStrength, 0);
+
+      for (var particle in _engine.particles) {
+        particle.applyForce(wind);
+      }
+
+      final screenSize = MediaQuery.of(context).size;
+      _engine.update(dt, screenSize);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A237E),
+      body: Stack(
+        children: [
+          CustomPaint(painter: EnginePainter(_engine), size: Size.infinite),
+          Center(
+            child: AnimatedOpacity(
+              opacity: _opacity,
+              duration: const Duration(seconds: 2),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: // Image.asset() の代わりに Icon() を使う
+                      Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.ac_unit, // 雪のアイコン
+                          size: 120,
+                          color: Color(0xFF1A237E),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  const Text(
+                    'My Awesome App',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Version 1.0.0',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'パーティクル数: ${_engine.particleCount}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                  Text(
+                    '風: ${_windStrength.toStringAsFixed(1)}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
