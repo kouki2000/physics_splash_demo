@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:physics_splash_demo/core/snow_particle.dart';
 import 'dart:math';
 import 'core/vector2d.dart';
 import 'core/simple_particle.dart';
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Physics Splash Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const Step2Screen(),
+      home: const Step3Screen(),
     );
   }
 }
@@ -125,6 +126,113 @@ class _Step2ScreenState extends State<Step2Screen>
                   ),
                   Text(
                     '重力: ${_engine.gravity}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Step3Screen extends StatefulWidget {
+  const Step3Screen({Key? key}) : super(key: key);
+
+  @override
+  State<Step3Screen> createState() => _Step3ScreenState();
+}
+
+class _Step3ScreenState extends State<Step3Screen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late PhysicsEngine _engine;
+  DateTime _lastTime = DateTime.now();
+  final Random _random = Random();
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _engine = PhysicsEngine(gravity: Vector2D(0, 100));
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(days: 1),
+    )..addListener(_onFrame);
+
+    _controller.repeat();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_initialized) {
+      for (int i = 0; i < 50; i++) {
+        _addRandomSnowParticle();
+      }
+      _initialized = true;
+    }
+  }
+
+  /// ランダムな位置に雪のパーティクルを追加
+  void _addRandomSnowParticle() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final particle = SnowParticle(
+      position: Vector2D(
+        _random.nextDouble() * screenWidth,
+        _random.nextDouble() * -200,
+      ),
+      size: 6 + _random.nextDouble() * 6, // 6〜12のランダムなサイズ
+    );
+    _engine.addParticle(particle);
+  }
+
+  void _onFrame() {
+    final now = DateTime.now();
+    final dt = now.difference(_lastTime).inMicroseconds / 1000000.0;
+    _lastTime = now;
+
+    setState(() {
+      final screenSize = MediaQuery.of(context).size;
+      _engine.update(dt, screenSize);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A237E),
+      body: Stack(
+        children: [
+          CustomPaint(painter: EnginePainter(_engine), size: Size.infinite),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Step 3: 点を雪の形にする',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'パーティクル数: ${_engine.particleCount}',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
