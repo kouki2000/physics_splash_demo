@@ -17,6 +17,9 @@ class PhysicsEngine {
 
   /// 全てのパーティクルを更新
   void update(double dt, Size screenSize) {
+    // 削除するパーティクルのリスト
+    final toRemove = <SimpleParticle>[];
+
     for (var particle in particles) {
       // 重力を適用
       particle.applyForce(gravity);
@@ -24,11 +27,15 @@ class PhysicsEngine {
       // 更新
       particle.update(dt);
 
-      // 画面下に到達したら上に戻す
-      if (particle.position.y > screenSize.height) {
-        particle.position.y = -10;
-        particle.velocity = Vector2D.zero();
+      // 画面下に到達したら削除リストに追加
+      if (particle.position.y > screenSize.height + 50) {
+        toRemove.add(particle);
       }
+    }
+
+    // 削除
+    for (var particle in toRemove) {
+      particles.remove(particle);
     }
   }
 
